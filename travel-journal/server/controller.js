@@ -1,6 +1,53 @@
+require('dotenv').config()
 
+const { userInfo } = require('os');
+const Sequelize = require('sequelize')
+
+const sequelize = new Sequelize(process.env.CONNECTION_STRING, {
+    dialect: 'postgres',
+    dialectOptions: {
+        ssl: {
+            rejectUnauthorized: false
+        }
+    }
+})
 
 module.exports = {
+    getCountries: (req,res) => {
+        sequelize.query(`select * from countries`)
+        .then((dbRes) => {
+        res.status(200).send(dbRes[0]);
+      })
+        .catch((err) => console.log(err));
+        
+    },
+    createCity: (req,res) => {
+        const {name, rating, countryId} = req.body;
+
+        sequelize.query
+        (`insert into cities (name, rating, country_id)
+        values (${name},${rating}, ${countryId})
+        returning *;`)
+        .then(dbRes => res.status(200).send(dbRes[0]))
+        .catch(err => console.log(err));
+            
+        },
+    getCities: (req,res) => {
+        sequelize.query(`select * from cities c 
+        join countries o on o.country_id = c.country_id`)
+        .then(dbRes => res.status(200).send(dbRes[0]))
+        .catch(err => console.log(err));
+    },
+
+    deleteCity:(req,res) => {
+        const {city_Id}= req.params
+        sequelize.query(
+            `delete from cities where city_id= ${cityId}`
+        )
+        .then(dbRes => res.status(200).send(dbRes[0]))
+        .catch(err => console.log(err));
+
+    },
     seed: (req, res) => {
         sequelize.query(`
             drop table if exists cities;
@@ -8,11 +55,17 @@ module.exports = {
 
             create table countries (
                 country_id serial primary key, 
-                name varchar
+                name varchar(100)
             );
 
-            *****YOUR CODE HERE*****
+            create table cities (
+                city_id serial primary key,
+                name varchar(100) NULL,
+                rating integer, 
+                country_id integer references countries(country_id)
+            );
 
+           
             insert into countries (name)
             values ('Afghanistan'),
             ('Albania'),
